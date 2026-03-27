@@ -448,7 +448,7 @@ async function startDropboxDownload() {
   const email = document.getElementById("loginEmail").value.trim(); // Email login input se le rahe hain
   
   // 1. User Feedback
-  btn.innerText = "⏳ Verifying Access...";
+  btn.innerText = "⏳ E-Book Downloading...";
   btn.disabled = true;
   if(msg) msg.innerText = "Connecting to secure server...";
 

@@ -4,44 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>1 Crore in 365 Days</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
-        /* Body aur HTML ko full screen set karna */
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden; /* Scrollbars hatane ke liye */
-            background-color: #000; /* Loading ke waqt black background */
-        }
-
-        /* Iframe styling */
-        iframe {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+        iframe { position: fixed; top: 0; left: 0; width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
-
-    <iframe 
-        src="https://script.google.com/macros/s/AKfycbw-mvFJxsw6y8NRgRNHihFSoWf-uYNFxJe5jozxOmUS6y08mzKZ3RxH-vpQTlJY3Pml/exec"
-        allowfullscreen="true"
-        allow="fullscreen">
-    </iframe>
+    <iframe id="myApp" src="https://script.google.com/macros/s/AKfycbxdco4p-QKB11DoC8-jrT2_REbhAJpkoWeK0LESqf-cfhVQOzuHuD_024wp-rLlBcn54w/exec" allowfullscreen="true" allow="fullscreen; payment"></iframe>
 
     <script>
-        window.onload = function() {
-            // Fullscreen trigger (Note: Browser ise block kar sakta hai jab tak user click na kare)
-            const iframe = document.querySelector('iframe');
-            iframe.requestFullscreen().catch((err) => {
-                console.log("Auto-fullscreen blocked by browser. This is normal for security.");
-            });
-        };
+        const iframe = document.getElementById('myApp');
+
+        // Iframe se Payment Signal receive karna
+        window.addEventListener("message", function(event) {
+            if (event.data.type === "OPEN_RAZORPAY") {
+                const options = {
+                    "key": event.data.key,
+                    "amount": event.data.amount,
+                    "currency": "INR",
+                    "name": "Mission 1 Crore",
+                    "description": "365 Days Blueprint Ebook",
+                    "order_id": event.data.order_id,
+                    "prefill": { "name": event.data.name, "email": event.data.email },
+                    "theme": { "color": "#d59e15" },
+                    "handler": function (response) {
+                        // Payment success: Iframe ko wapas data bhejo verification ke liye
+                        iframe.contentWindow.postMessage({
+                            type: "PAYMENT_SUCCESS",
+                            response: response
+                        }, "*");
+                    },
+                    "modal": {
+                        "ondismiss": function() {
+                            iframe.contentWindow.postMessage({ type: "PAYMENT_CANCELLED" }, "*");
+                        }
+                    }
+                };
+                const rzp = new Razorpay(options);
+                rzp.open();
+            }
+        }, false);
     </script>
 </body>
 </html>

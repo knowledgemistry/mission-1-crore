@@ -1,14 +1,23 @@
 let expanded = false;
 
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwXXLUPOStUqeqaP9jtGlr7aTcIuyNkVG-Z9One5i_EjoCBWMQMb46aandP92lj9s8Ilw/exec";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwaL4jvtUvhlH8sSh_dazPT9B2Od-1AOCwmzm3tJLnUs7IejrYMPZ7yjUt8tohBTzDHCA/exec";
 
-// 2. google.script.run ki jagah ye naya function banayein
-async function callBackend(action, payload = {}) {
-  const response = await fetch(BACKEND_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: action, payload: payload })
-  });
-  return await response.json();
+async function callBackend(action, params = {}) {
+  // URL mein parameters add karna (GET request ke liye)
+  let url = new URL(BACKEND_URL);
+  url.searchParams.append("action", action);
+  
+  for (let key in params) {
+    url.searchParams.append(key, params[key]);
+  }
+
+  try {
+    const response = await fetch(url);
+    return await response.json();
+  } catch (e) {
+    console.error("CORS or Fetch Error:", e);
+    return { error: true };
+  }
 }
 
 function toggleChapters() {

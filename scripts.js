@@ -442,32 +442,43 @@ function startDownloadProcess() {
 }
 
 // Is function ko apne scripts.html mein add karein
-function startDropboxDownload() {
+async function startDropboxDownload() {
   const btn = document.getElementById("downloadBtn");
   const msg = document.getElementById("downloadMsg");
+  const email = document.getElementById("loginEmail").value.trim(); // Email login input se le rahe hain
   
   // 1. User Feedback
-  btn.innerText = "⏳ E-Book Downloading...";
+  btn.innerText = "⏳ Verifying Access...";
   btn.disabled = true;
   if(msg) msg.innerText = "Connecting to secure server...";
 
-  // 2. 🔥 Dropbox Direct Link (dl=1)
-  // Yahan apna asli Dropbox link dalein (aakhir mein dl=1 ke saath)
-  const dropboxLink = "https://www.dropbox.com/scl/fi/nzvjo5so0w2vcioxmskrt/365-1-_compressed.pdf?rlkey=ccyoh4yzjllzlehyf7sn0xg9q&st=lxav8un0&dl=1";
+  try {
+    // 🔥 Backend se secure link mangwana (GitHub compatible fetch)
+    const response = await fetch(`${BACKEND_URL}?action=getLink&email=${encodeURIComponent(email)}`);
+    const res = await response.json();
 
-  // Hidden link create karke click karwana (Secure method)
-  const a = document.createElement("a");
-  a.href = dropboxLink;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    if (res.success && res.link) {
+      // 2. Link milne par download start karna
+      const a = document.createElement("a");
+      a.href = res.link;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      if(msg) msg.innerText = "Download started successfully! ✅";
+    } else {
+      if(msg) msg.innerText = "Access Denied: Please use your paid email. ❌";
+    }
+  } catch (err) {
+    console.error("Download Error:", err);
+    if(msg) msg.innerText = "Server error. Please try again.";
+  }
 
   // 3. Reset Button after 5 seconds
   setTimeout(() => {
     btn.innerText = "📥 Download E-Book (PDF)";
     btn.disabled = false;
-    if(msg) msg.innerText = "Download started successfully! ✅";
   }, 5000);
 }
 

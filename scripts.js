@@ -157,37 +157,35 @@ function startPayment() {
   }
 
   // 🔥 5. DUPLICATE PURCHASE CHECK
-  // Pehle check karte hain ki kya yeh email pehle se hamare records mein hai
   showMessage("Checking account status...", "success");
 
-  google.script.run
-    .withSuccessHandler(function(hasAccess) {
-      if (hasAccess === true) {
-        // Agar user ne pehle hi buy kiya hai
+  // YAHAN BADLAV HAI: callBackend function ka use
+  callBackend("checkAccess", { email: email })
+    .then(res => {
+      // Chonki Apps Script se object {hasAccess: true/false} aayega
+      if (res && res.hasAccess === true) {
         showMessage("You already have access! Opening your dashboard...", "success");
         
-        // Header reset: Login chhupao, Logout dikhao
+        // Header reset
         const loginNav = document.getElementById("loginNavBtn");
         const logoutNav = document.getElementById("logoutNavBtn");
         if(loginNav) loginNav.classList.add("hidden");
         if(logoutNav) logoutNav.classList.remove("hidden");
 
-        // 1.5 second baad dashboard page par bhej do
         setTimeout(() => {
           showPage("dashboard-page");
         }, 1500);
       } else {
-        // Agar naya user hai, toh normal payment process
+        // Naya user hai
         showMessage("Redirecting to secure payment...", "success");
         openRazorpay(name, email);
       }
     })
-    .withFailureHandler(function(err) {
-      // Agar server check fail ho jaye, toh safety ke liye payment shuru kar do
+    .catch(err => {
+      // Server error par safety ke liye payment open kar dena behtar hai
       console.error("Check Access Error:", err);
       openRazorpay(name, email);
-    })
-    .checkUserAccess(email); 
+    });
 }
 
 function openRazorpay(name, email) {
@@ -196,126 +194,125 @@ function openRazorpay(name, email) {
     return;
   }
 
-  // Backend se Key aur Order details mangwana (using fetch)
-  fetch(`${BACKEND_URL}?action=getCheckoutDetails`)
-    .then(res => res.json())
-    .then(data => {
-      var options = {
-        "key": data.rzpKey,
-        "amount": 7900, 
-        "currency": "INR",
-        "name": "Mission 1 Crore",
-        "description": "365 Days Blueprint Ebook",
-        "order_id": data.order_id,
-        "prefill": { "name": name, "email": email },
-        "theme": { "color": "#d59e15" },
-        "handler": function (response) {
-          verifyUserPayment(response, name, email);
+  showMessage("Generating Order...", "success");
+
+  // Backend se Key aur Order details mangwana
+  callBackend("getCheckoutDetails").then(data => {
+    var options = {
+      "key": data.rzpKey, // Backend se aayi key
+      "amount": data.amount, // Backend se aaya amount
+      "currency": "INR",
+      "name": "Mission 1 Crore",
+      "description": "365 Days Blueprint Ebook",
+      "order_id": data.order_id, // Backend se aaya order id
+      "prefill": { "name": name, "email": email },
+      "theme": { "color": "#d59e15" },
+      "handler": function (response) {
+        verifyUserPayment(response, name, email);
+      },
+      "modal": {
+        "ondismiss": function() {
+          showMessage("Payment cancelled", "error");
         }
-      };
-      var rzp = new Razorpay(options);
-      rzp.open();
-    });
+      }
+    };
+    var rzp = new Razorpay(options);
+    rzp.open();
+  }).catch(err => {
+    console.error("Checkout Error:", err);
+    showMessage("Failed to start payment. Try again.", "error");
+  });
 }
 
 function verifyUserPayment(response, name, email) {
   showMessage("Verifying payment...", "success");
 
-  fetch(BACKEND_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "verifyPayment",
-      payload: {
-        order_id: response.razorpay_order_id,
-        payment_id: response.razorpay_payment_id,
-        signature: response.razorpay_signature,
-        name: name,
-        email: email
-      }
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.success) {
-      showMessage("Payment verified! 🎉", "success");
-      showPage("dashboard-page");
+  callBackend("verifyPayment", {
+    order_id: response.razorpay_order_id,
+    payment_id: response.razorpay_payment_id,
+    signature: response.razorpay_signature,
+    name: name,
+    email: email
+  }).then(res => {
+    if (res && res.success === true) {
+      showMessage("Payment verified! Opening your dashboard... 🎉", "success");
+      
+      // Header reset
+      document.getElementById("loginNavBtn").classList.add("hidden");
+      document.getElementById("logoutNavBtn").classList.remove("hidden");
+
+      setTimeout(() => {
+        showPage("dashboard-page");
+      }, 1500);
     } else {
-      showMessage("Verification failed: " + res.message, "error");
+      let msg = (res && res.message) ? res.message : "Verification failed";
+      showMessage("Error: " + msg + " ❌", "error");
     }
+  }).catch(err => {
+    console.error("Verify Error:", err);
+    showMessage("Server error during verification ❌", "error");
   });
-}
-
-function openLogin() {
-  // Sabhi pages hide karo
-  document.querySelectorAll(".page").forEach(p => {
-    p.classList.add("hidden");
-    p.classList.remove("active", "fade-up");
-  });
-
-  // Login page se hidden hatao aur active karo
-  const loginPage = document.getElementById("login-page");
-  loginPage.classList.remove("hidden");
-  loginPage.classList.add("active");
-
-  void loginPage.offsetWidth;
-  loginPage.classList.add("fade-up");
-
-  updateStickyCTA();
-  window.scrollTo(0, 0);
 }
 
 function loginUser() {
   const emailInput = document.getElementById("loginEmail");
   const email = emailInput.value.trim();
-  const msgBox = document.getElementById("loginMessage");
+  const btn = document.querySelector(".login-btn");
 
-  // 1. CLEAR PREVIOUS MESSAGES
-  msgBox.style.display = "none";
-  msgBox.innerText = "";
-
-  // 2. EMPTY CHECK (Pehle error dikhayenge, button change nahi hoga)
   if (!email) {
     showLoginMessage("Please enter your email address", "error");
     return;
   }
 
-  // 3. FORMAT CHECK
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailPattern.test(email)) {
     showLoginMessage("Invalid email format", "error");
     return;
   }
 
-  // 4. VALIDATION PASS (Ab button text aur message change hoga)
-  const btn = document.querySelector(".login-btn");
   btn.disabled = true;
   btn.innerText = "Verifying Access...";
   showLoginMessage("Checking our records, please wait...", "success");
 
-  google.script.run
-    .withSuccessHandler(function(res) {
-      btn.disabled = false;
-      btn.innerText = "Access My Ebook";
+  // Backend check call
+  callBackend("checkAccess", { email: email }).then(res => {
+    btn.disabled = false;
+    btn.innerText = "Access My Ebook";
+    
+    if (res && res.hasAccess === true) {
+      showLoginMessage("Access Granted! Opening Dashboard...", "success");
       
-      if (res === true) {
-        showLoginMessage("Access Granted! Opening Dashboard...", "success");
-        
-        // Header Buttons Switch
-        document.getElementById("loginNavBtn").classList.add("hidden");
-        document.getElementById("logoutNavBtn").classList.remove("hidden");
-        
-        // Go to Dashboard
-        showPage("dashboard-page"); 
-      } else {
-        showLoginMessage("No purchase found for this email ❌", "error");
-      }
-    })
-    .withFailureHandler(function(err) {
-      btn.disabled = false;
-      btn.innerText = "Access My Ebook";
-      showLoginMessage("Server Error. Please refresh and try again.", "error");
-    })
-    .checkUserAccess(email);
+      // Header Buttons Switch
+      document.getElementById("loginNavBtn").classList.add("hidden");
+      document.getElementById("logoutNavBtn").classList.remove("hidden");
+      
+      showPage("dashboard-page"); 
+    } else {
+      showLoginMessage("No purchase found for this email ❌", "error");
+    }
+  }).catch(err => {
+    btn.disabled = false;
+    btn.innerText = "Access My Ebook";
+    showLoginMessage("Server Error. Please refresh and try again.", "error");
+  });
+}
+
+function openLogin() {
+  document.querySelectorAll(".page").forEach(p => {
+    p.classList.add("hidden");
+    p.classList.remove("active", "fade-up");
+  });
+
+  const loginPage = document.getElementById("login-page");
+  if (loginPage) {
+    loginPage.classList.remove("hidden");
+    loginPage.classList.add("active");
+    void loginPage.offsetWidth;
+    loginPage.classList.add("fade-up");
+  }
+
+  updateStickyCTA();
+  window.scrollTo(0, 0);
 }
 
 // Helper to show message in the card (exactly like payment card)

@@ -233,34 +233,45 @@ function openRazorpay(name, email) {
   });
 }
 
-function verifyUserPayment(response, name, email) {
+functionfunction verifyUserPayment(response, name, email) {
   showMessage("Verifying payment...", "success");
 
-  callBackend("verifyPayment", {
+  // Hum POST ki jagah GET parameters bhej rahe hain CORS se bachne ke liye
+  const params = {
+    action: "verifyPayment",
     order_id: response.razorpay_order_id,
     payment_id: response.razorpay_payment_id,
     signature: response.razorpay_signature,
     name: name,
     email: email
-  }).then(res => {
-    if (res && res.success === true) {
-      showMessage("Payment verified! Opening your dashboard... 🎉", "success");
-      
-      // Header reset
-      document.getElementById("loginNavBtn").classList.add("hidden");
-      document.getElementById("logoutNavBtn").classList.remove("hidden");
+  };
 
-      setTimeout(() => {
-        showPage("dashboard-page");
-      }, 1500);
-    } else {
-      let msg = (res && res.message) ? res.message : "Verification failed";
-      showMessage("Error: " + msg + " ❌", "error");
-    }
-  }).catch(err => {
-    console.error("Verify Error:", err);
-    showMessage("Server error during verification ❌", "error");
-  });
+  // URL query string banana
+  const queryString = Object.keys(params)
+    .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+    .join('&');
+
+  fetch(`${BACKEND_URL}?${queryString}`)
+    .then(res => res.json())
+    .then(res => {
+      if (res && res.success === true) {
+        showMessage("Payment verified! Opening your dashboard... 🎉", "success");
+        
+        // Login status update
+        document.getElementById("loginNavBtn").classList.add("hidden");
+        document.getElementById("logoutNavBtn").classList.remove("hidden");
+
+        setTimeout(() => {
+          showPage("dashboard-page");
+        }, 1500);
+      } else {
+        showMessage("Verification failed: " + (res.message || "Unknown error"), "error");
+      }
+    })
+    .catch(err => {
+      console.error("Verification Error:", err);
+      showMessage("Server connection error during verification", "error");
+    });
 }
 
 function loginUser() {

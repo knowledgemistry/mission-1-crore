@@ -233,7 +233,7 @@ function openRazorpay(name, email) {
   });
 }
 
-functionfunction verifyUserPayment(response, name, email) {
+function verifyUserPayment(response, name, email) {
   showMessage("Verifying payment...", "success");
 
   // Hum POST ki jagah GET parameters bhej rahe hain CORS se bachne ke liye

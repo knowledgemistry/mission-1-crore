@@ -1,5 +1,16 @@
 let expanded = false;
 
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwXXLUPOStUqeqaP9jtGlr7aTcIuyNkVG-Z9One5i_EjoCBWMQMb46aandP92lj9s8Ilw/exec";
+
+// 2. google.script.run ki jagah ye naya function banayein
+async function callBackend(action, payload = {}) {
+  const response = await fetch(BACKEND_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: action, payload: payload })
+  });
+  return await response.json();
+}
+
 function toggleChapters() {
   const items = document.querySelectorAll('.chapter-item');
   const btn = document.querySelector('.view-all');
@@ -185,74 +196,53 @@ function openRazorpay(name, email) {
     return;
   }
 
-  // Step 1: Backend se Key mangwao
-  google.script.run.withSuccessHandler(function(rzpKey) {
-    
-    // Step 2: Order create karo
-    google.script.run.withSuccessHandler(function(order) {
-      
+  // Backend se Key aur Order details mangwana (using fetch)
+  fetch(`${BACKEND_URL}?action=getCheckoutDetails`)
+    .then(res => res.json())
+    .then(data => {
       var options = {
-        key: rzpKey,
-        amount: order.amount,
-        currency: "INR",
-        order_id: order.id,
-        name: "Mission 1 Crore",
-        description: "365 Days Blueprint Ebook",
-        prefill: { name: name, email: email },
-        theme: { color: "#d59e15" },
-
-        handler: function (response) {
-          showMessage("Verifying payment...", "success");
-
-          google.script.run
-            .withSuccessHandler(function(res) {
-              console.log("Server Response:", res);
-              
-              if (res && res.success === true) {
-                // ✅ PAYMENT SUCCESS LOGIC
-                showMessage("Payment verified! Opening your dashboard... 🎉", "success");
-
-                // 1. Header Buttons change karein
-                const loginNav = document.getElementById("loginNavBtn");
-                const logoutNav = document.getElementById("logoutNavBtn");
-                if(loginNav) loginNav.classList.add("hidden");
-                if(logoutNav) logoutNav.classList.remove("hidden");
-
-                // 2. 1.5 seconds baad dashboard par bhej dein
-                setTimeout(function() {
-                  showPage("dashboard-page");
-                }, 1500);
-
-              } else {
-                let msg = (res && res.message) ? res.message : "Verification failed";
-                showMessage("Error: " + msg + " ❌", "error");
-              }
-            })
-            .withFailureHandler(function(err) {
-              console.error("VERIFY ERROR:", err);
-              showMessage("Server error during verification ❌", "error");
-            })
-            .verifyPayment({
-              order_id: response.razorpay_order_id,
-              payment_id: response.razorpay_payment_id,
-              signature: response.razorpay_signature,
-              name: name,
-              email: email
-            });
-        },
-        modal: {
-          ondismiss: function() {
-            showMessage("Payment cancelled", "error");
-          }
+        "key": data.rzpKey,
+        "amount": 7900, 
+        "currency": "INR",
+        "name": "Mission 1 Crore",
+        "description": "365 Days Blueprint Ebook",
+        "order_id": data.order_id,
+        "prefill": { "name": name, "email": email },
+        "theme": { "color": "#d59e15" },
+        "handler": function (response) {
+          verifyUserPayment(response, name, email);
         }
       };
-
       var rzp = new Razorpay(options);
       rzp.open();
+    });
+}
 
-    }).createOrder(); 
+function verifyUserPayment(response, name, email) {
+  showMessage("Verifying payment...", "success");
 
-  }).getRzpKey(); 
+  fetch(BACKEND_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "verifyPayment",
+      payload: {
+        order_id: response.razorpay_order_id,
+        payment_id: response.razorpay_payment_id,
+        signature: response.razorpay_signature,
+        name: name,
+        email: email
+      }
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.success) {
+      showMessage("Payment verified! 🎉", "success");
+      showPage("dashboard-page");
+    } else {
+      showMessage("Verification failed: " + res.message, "error");
+    }
+  });
 }
 
 function openLogin() {
@@ -467,29 +457,5 @@ function startDropboxDownload() {
 document.addEventListener("DOMContentLoaded", updateStickyCTA);
 
 // 1. Apna Apps Script URL yahan dalein
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwXXLUPOStUqeqaP9jtGlr7aTcIuyNkVG-Z9One5i_EjoCBWMQMb46aandP92lj9s8Ilw/exec";
-
-// 2. google.script.run ki jagah ye naya function banayein
-async function callBackend(action, payload = {}) {
-  const response = await fetch(BACKEND_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: action, payload: payload })
-  });
-  return await response.json();
-}
-
-// 3. Ab startPayment function ke andar aise use karein:
-function startPayment() {
-  // ... (Aapka validation code same rahega) ...
-
-  // google.script.run.checkUserAccess ki jagah ye likhein:
-  callBackend("checkAccess", { email: email }).then(res => {
-    if (res.hasAccess) {
-      // Access granted logic
-    } else {
-      openRazorpay(name, email);
-    }
-  });
-}
 
 

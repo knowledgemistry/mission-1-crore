@@ -465,3 +465,29 @@ function startDropboxDownload() {
 }
 
 document.addEventListener("DOMContentLoaded", updateStickyCTA);
+
+// 1. Apna Apps Script URL yahan dalein
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycb...Yahan_Apna_URL.../exec";
+
+// 2. google.script.run ki jagah ye naya function banayein
+async function callBackend(action, payload = {}) {
+  const response = await fetch(BACKEND_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: action, payload: payload })
+  });
+  return await response.json();
+}
+
+// 3. Ab startPayment function ke andar aise use karein:
+function startPayment() {
+  // ... (Aapka validation code same rahega) ...
+
+  // google.script.run.checkUserAccess ki jagah ye likhein:
+  callBackend("checkAccess", { email: email }).then(res => {
+    if (res.hasAccess) {
+      // Access granted logic
+    } else {
+      openRazorpay(name, email);
+    }
+  });
+}

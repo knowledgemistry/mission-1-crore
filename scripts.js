@@ -467,7 +467,7 @@ function startDropboxDownload() {
 document.addEventListener("DOMContentLoaded", updateStickyCTA);
 
 // 1. Apna Apps Script URL yahan dalein
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycb...Yahan_Apna_URL.../exec";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwXXLUPOStUqeqaP9jtGlr7aTcIuyNkVG-Z9One5i_EjoCBWMQMb46aandP92lj9s8Ilw/exec";
 
 // 2. google.script.run ki jagah ye naya function banayein
 async function callBackend(action, payload = {}) {

@@ -492,22 +492,4 @@ function startPayment() {
   });
 }
 
-// Header aur Footer load karne ka function
-function loadTemplate() {
-  // Header Load karo
-  fetch('header.html')
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById('header-site').innerHTML = data;
-    });
 
-  // Footer Load karo
-  fetch('footer.html')
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById('footer-site').innerHTML = data;
-    });
-}
-
-// Page load hote hi function chalao
-window.addEventListener('DOMContentLoaded', loadTemplate);

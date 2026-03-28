@@ -477,21 +477,28 @@ async function startDownload() {
 }
 
 function openLogin() {
-  // Sabhi pages hide karo
-  document.querySelectorAll(".page").forEach(p => {
+  console.log("Login button clicked!"); // આ ચેક કરવા માટે
+
+  // 1. બધા પેજ હાઈડ કરો
+  const allPages = document.querySelectorAll(".page");
+  allPages.forEach(p => {
     p.classList.add("hidden");
     p.classList.remove("active", "fade-up");
   });
 
-  // Login page se hidden hatao aur active karo
-  const loginPage = document.getElementById("login-page");
-  loginPage.classList.remove("hidden");
-  loginPage.classList.add("active");
+  // 2. લોગિન પેજ શોધો અને બતાવો
+  const lp = document.getElementById("login-page");
+  if (lp) {
+    lp.classList.remove("hidden");
+    lp.classList.add("active");
+    void lp.offsetWidth; // Animation trigger
+    lp.classList.add("fade-up");
+    console.log("Login page is now active");
+  } else {
+    console.error("Error: login-page ID missing in HTML!");
+  }
 
-  void loginPage.offsetWidth;
-  loginPage.classList.add("fade-up");
-
-  updateStickyCTA();
+  if(typeof updateStickyCTA === "function") updateStickyCTA();
   window.scrollTo(0, 0);
 }
 

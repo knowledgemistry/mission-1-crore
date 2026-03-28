@@ -304,49 +304,6 @@ function loginUser() {
     btn.innerText = "Access My Ebook";
     
     if (res && res.hasAccess === true) {
-      showLoginMessage("Access Granted! Opening Dashboard...", "success");
-      
-      // Header Buttons Switch
-      document.getElementById("loginNavBtn").classList.add("hidden");
-      document.getElementById("logoutNavBtn").classList.remove("hidden");
-      
-      showPage("dashboard-page"); 
-    } else {
-      showLoginMessage("No purchase found for this email ❌", "error");
-    }
-  }).catch(err => {
-    btn.disabled = false;
-    btn.innerText = "Access My Ebook";
-    showLoginMessage("Server Error. Please refresh and try again.", "error");
-  });
-}
-
-function loginUser() {
-  const emailInput = document.getElementById("loginEmail");
-  const email = emailInput.value.trim();
-  const btn = document.querySelector(".login-btn");
-
-  if (!email) {
-    showLoginMessage("Please enter your email address", "error");
-    return;
-  }
-
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailPattern.test(email)) {
-    showLoginMessage("Invalid email format", "error");
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerText = "Verifying Access...";
-  showLoginMessage("Checking our records, please wait...", "success");
-
-  // Backend check call
-  callBackend("checkAccess", { email: email }).then(res => {
-    btn.disabled = false;
-    btn.innerText = "Access My Ebook";
-    
-    if (res && res.hasAccess === true) {
       // --- FIX START: Global variable mein email save kiya ---
       currentUserEmail = email; 
       // --- FIX END ---

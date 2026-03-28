@@ -442,26 +442,23 @@ function startDownloadProcess() {
 }
 
 // Is function ko apne scripts.html mein add karein
-async function startDropboxDownload() {
+async function startDownload() { // નામ બદલીને generic કર્યું
   const btn = document.getElementById("downloadBtn");
   const msg = document.getElementById("downloadMsg");
-  const email = document.getElementById("loginEmail").value.trim(); // Email login input se le rahe hain
+  const email = document.getElementById("loginEmail").value.trim();
   
-  // 1. User Feedback
   btn.innerText = "⏳ E-Book Downloading...";
   btn.disabled = true;
   if(msg) msg.innerText = "Connecting to secure server...";
 
   try {
-    // 🔥 Backend se secure link mangwana (GitHub compatible fetch)
     const response = await fetch(`${BACKEND_URL}?action=getLink&email=${encodeURIComponent(email)}`);
     const res = await response.json();
 
     if (res.success && res.link) {
-      // 2. Link milne par download start karna
       const a = document.createElement("a");
       a.href = res.link;
-      a.style.display = "none";
+      a.target = "_blank"; // Google Drive માટે આ જરૂરી છે
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -475,7 +472,6 @@ async function startDropboxDownload() {
     if(msg) msg.innerText = "Server error. Please try again.";
   }
 
-  // 3. Reset Button after 5 seconds
   setTimeout(() => {
     btn.innerText = "📥 Download E-Book (PDF)";
     btn.disabled = false;

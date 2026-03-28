@@ -1,4 +1,5 @@
 let expanded = false;
+let currentUserEmail = "";
 
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwlqRhklqTvR6HvscAJ-MxZgJoefCSLi0ZaMJ_b_y_Ck6WUaKQWKJpY2epWLi9zCu9Uaw/exec";
 
@@ -168,14 +169,15 @@ function startPayment() {
   // 🔥 5. DUPLICATE PURCHASE CHECK
   showMessage("Checking account status...", "success");
 
-  // YAHAN BADLAV HAI: callBackend function ka use
   callBackend("checkAccess", { email: email })
     .then(res => {
-      // Chonki Apps Script se object {hasAccess: true/false} aayega
       if (res && res.hasAccess === true) {
+        // --- FIX START ---
+        currentUserEmail = email; // Email ko global variable mein save kiya
+        // --- FIX END ---
+
         showMessage("You already have access! Opening your dashboard...", "success");
         
-        // Header reset
         const loginNav = document.getElementById("loginNavBtn");
         const logoutNav = document.getElementById("logoutNavBtn");
         if(loginNav) loginNav.classList.add("hidden");
@@ -185,13 +187,11 @@ function startPayment() {
           showPage("dashboard-page");
         }, 1500);
       } else {
-        // Naya user hai
         showMessage("Redirecting to secure payment...", "success");
         openRazorpay(name, email);
       }
     })
     .catch(err => {
-      // Server error par safety ke liye payment open kar dena behtar hai
       console.error("Check Access Error:", err);
       openRazorpay(name, email);
     });
@@ -255,6 +255,10 @@ function verifyUserPayment(response, name, email) {
     .then(res => res.json())
     .then(res => {
       if (res && res.success === true) {
+        // --- FIX START: Global variable mein email save kiya ---
+        currentUserEmail = email; 
+        // --- FIX END ---
+
         showMessage("Payment verified! Opening your dashboard... 🎉", "success");
         
         // Login status update
@@ -317,22 +321,51 @@ function loginUser() {
   });
 }
 
-function openLogin() {
-  document.querySelectorAll(".page").forEach(p => {
-    p.classList.add("hidden");
-    p.classList.remove("active", "fade-up");
-  });
+function loginUser() {
+  const emailInput = document.getElementById("loginEmail");
+  const email = emailInput.value.trim();
+  const btn = document.querySelector(".login-btn");
 
-  const loginPage = document.getElementById("login-page");
-  if (loginPage) {
-    loginPage.classList.remove("hidden");
-    loginPage.classList.add("active");
-    void loginPage.offsetWidth;
-    loginPage.classList.add("fade-up");
+  if (!email) {
+    showLoginMessage("Please enter your email address", "error");
+    return;
   }
 
-  updateStickyCTA();
-  window.scrollTo(0, 0);
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(email)) {
+    showLoginMessage("Invalid email format", "error");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = "Verifying Access...";
+  showLoginMessage("Checking our records, please wait...", "success");
+
+  // Backend check call
+  callBackend("checkAccess", { email: email }).then(res => {
+    btn.disabled = false;
+    btn.innerText = "Access My Ebook";
+    
+    if (res && res.hasAccess === true) {
+      // --- FIX START: Global variable mein email save kiya ---
+      currentUserEmail = email; 
+      // --- FIX END ---
+
+      showLoginMessage("Access Granted! Opening Dashboard...", "success");
+      
+      // Header Buttons Switch
+      document.getElementById("loginNavBtn").classList.add("hidden");
+      document.getElementById("logoutNavBtn").classList.remove("hidden");
+      
+      showPage("dashboard-page"); 
+    } else {
+      showLoginMessage("No purchase found for this email ❌", "error");
+    }
+  }).catch(err => {
+    btn.disabled = false;
+    btn.innerText = "Access My Ebook";
+    showLoginMessage("Server Error. Please refresh and try again.", "error");
+  });
 }
 
 // Helper to show message in the card (exactly like payment card)
@@ -442,11 +475,25 @@ function startDownloadProcess() {
 }
 
 // Is function ko apne scripts.html mein add karein
-async function startDownload() { // નામ બદલીને generic કર્યું
+async function startDownload() {
   const btn = document.getElementById("downloadBtn");
   const msg = document.getElementById("downloadMsg");
-  const email = document.getElementById("loginEmail").value.trim();
   
+  // Pehle global variable check karein, agar khali ho toh input se le
+  let email = currentUserEmail; 
+  
+  if (!email) {
+    const loginEmailInput = document.getElementById("loginEmail");
+    const checkoutEmailInput = document.querySelector('#checkout-page input[type="email"]');
+    email = (loginEmailInput && loginEmailInput.value.trim()) || 
+            (checkoutEmailInput && checkoutEmailInput.value.trim());
+  }
+
+  if (!email) {
+    if(msg) msg.innerText = "Error: Email not found. Please log in again. ❌";
+    return;
+  }
+
   btn.innerText = "⏳ E-Book Downloading...";
   btn.disabled = true;
   if(msg) msg.innerText = "Connecting to secure server...";
@@ -456,13 +503,7 @@ async function startDownload() { // નામ બદલીને generic કર�
     const res = await response.json();
 
     if (res.success && res.link) {
-      const a = document.createElement("a");
-      a.href = res.link;
-      a.target = "_blank"; // Google Drive માટે આ જરૂરી છે
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
+      window.open(res.link, '_blank');
       if(msg) msg.innerText = "Download started successfully! ✅";
     } else {
       if(msg) msg.innerText = "Access Denied: Please use your paid email. ❌";

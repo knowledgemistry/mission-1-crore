@@ -473,7 +473,26 @@ async function startDownload() {
   setTimeout(() => {
     btn.innerText = "📥 Download E-Book (PDF)";
     btn.disabled = false;
-  }, 5000);
+  }, 5000);  
+}
+
+function openLogin() {
+  // Sabhi pages hide karo
+  document.querySelectorAll(".page").forEach(p => {
+    p.classList.add("hidden");
+    p.classList.remove("active", "fade-up");
+  });
+
+  // Login page se hidden hatao aur active karo
+  const loginPage = document.getElementById("login-page");
+  loginPage.classList.remove("hidden");
+  loginPage.classList.add("active");
+
+  void loginPage.offsetWidth;
+  loginPage.classList.add("fade-up");
+
+  updateStickyCTA();
+  window.scrollTo(0, 0);
 }
 
 document.addEventListener("DOMContentLoaded", updateStickyCTA);

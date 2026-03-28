@@ -460,7 +460,16 @@ async function startDownload() {
     const res = await response.json();
 
     if (res.success && res.link) {
-      window.open(res.link, '_blank');
+      // 🔥 SILENT DOWNLOAD LOGIC START
+      const a = document.createElement("a");
+      a.href = res.link;
+      a.setAttribute("download", "Mission_1_Crore_Ebook.pdf"); 
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // 🔥 SILENT DOWNLOAD LOGIC END
+
       if(msg) msg.innerText = "Download started successfully! ✅";
     } else {
       if(msg) msg.innerText = "Access Denied: Please use your paid email. ❌";
@@ -477,7 +486,7 @@ async function startDownload() {
 }
 
 function openLogin() {
-  console.log("Login button clicked!"); // આ ચેક કરવા માટે
+  console.log("Login button clicked!"); 
 
   // 1. બધા પેજ હાઈડ કરો
   const allPages = document.querySelectorAll(".page");

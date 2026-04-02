@@ -1,7 +1,7 @@
 let expanded = false;
 let currentUserEmail = "";
 
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxq-v1RavGRhjRYGwvhROGkFiiz2WQm4oEEITE-_puu6M8WYnjzIOuUs27bdYSaCDrODQ/exec";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxceLDZUiXiZ8P8T0vwzG_2KhZh5iL0aueXOsoPsjOVTQcr5fGHzMr-roE0R6VeBG7L9w/exec";
 
 async function callBackend(action, params = {}) {
   // URL mein parameters add karna (GET request ke liye)

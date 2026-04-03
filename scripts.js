@@ -68,6 +68,17 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function openCheckout() {
+
+  // 🔥 META PIXEL TRACKING (InitiateCheckout)
+  try {
+    if (typeof fbq !== "undefined") {
+      fbq('track', 'InitiateCheckout');
+      console.log("Pixel: InitiateCheckout fired");
+    }
+  } catch (e) {
+    console.warn("Pixel error:", e);
+  }
+
   const landing = document.getElementById("landing-page");
   const checkout = document.getElementById("checkout-page");
 
@@ -236,7 +247,6 @@ function openRazorpay(name, email) {
 function verifyUserPayment(response, name, email) {
   showMessage("Verifying payment...", "success");
 
-  // Hum POST ki jagah GET parameters bhej rahe hain CORS se bachne ke liye
   const params = {
     action: "verifyPayment",
     order_id: response.razorpay_order_id,
@@ -246,7 +256,6 @@ function verifyUserPayment(response, name, email) {
     email: email
   };
 
-  // URL query string banana
   const queryString = Object.keys(params)
     .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
     .join('&');
@@ -255,19 +264,33 @@ function verifyUserPayment(response, name, email) {
     .then(res => res.json())
     .then(res => {
       if (res && res.success === true) {
-        // --- FIX START: Global variable mein email save kiya ---
+
+        // ✅ SAVE USER EMAIL
         currentUserEmail = email; 
-        // --- FIX END ---
+
+        // 🔥 META PIXEL PURCHASE EVENT
+        try {
+          if (typeof fbq !== "undefined") {
+            fbq('track', 'Purchase', {
+              value: 79,
+              currency: 'INR'
+            });
+            console.log("Pixel: Purchase fired");
+          }
+        } catch (e) {
+          console.warn("Pixel error:", e);
+        }
 
         showMessage("Payment verified! Opening your dashboard... 🎉", "success");
         
-        // Login status update
+        // LOGIN UI UPDATE
         document.getElementById("loginNavBtn").classList.add("hidden");
         document.getElementById("logoutNavBtn").classList.remove("hidden");
 
         setTimeout(() => {
           showPage("dashboard-page");
         }, 1500);
+
       } else {
         showMessage("Verification failed: " + (res.message || "Unknown error"), "error");
       }
@@ -277,7 +300,6 @@ function verifyUserPayment(response, name, email) {
       showMessage("Server connection error during verification", "error");
     });
 }
-
 function loginUser() {
   const emailInput = document.getElementById("loginEmail");
   const email = emailInput.value.trim();
@@ -514,5 +536,9 @@ function openLogin() {
 document.addEventListener("DOMContentLoaded", updateStickyCTA);
 
 // 1. Apna Apps Script URL yahan dalein
-
+document.addEventListener("DOMContentLoaded", () => {
+  if (typeof fbq !== "undefined") {
+    fbq('track', 'ViewContent');
+  }
+});
 
